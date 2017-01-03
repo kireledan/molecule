@@ -30,6 +30,7 @@ except ImportError:  # pragma: no cover
 
 from molecule import util
 from molecule.driver import basedriver
+from molecule.ansible_exec import AnsibleLocalExec
 
 
 class DockerDriver(basedriver.BaseDriver):
@@ -40,6 +41,7 @@ class DockerDriver(basedriver.BaseDriver):
         self._containers = self.molecule.config.config['docker']['containers']
         self._provider = self._get_provider()
         self._platform = self._get_platform()
+        self._ansib = AnsibleLocalExec()
 
         self.image_tag = 'molecule_local/{}:{}'
 
@@ -111,62 +113,42 @@ class DockerDriver(basedriver.BaseDriver):
 
     def up(self, no_provision=True):
         self.molecule.state.change_state('driver', self.name)
+
         if self.molecule.config.config['docker']['build_image']:
             self._build_ansible_compatible_image()
         else:
             self.image_tag = '{}:{}'
 
         for container in self.instances:
-            privileged = container.get('privileged', False)
-            port_bindings = container.get('port_bindings', {})
-            volume_mounts = container.get('volume_mounts', [])
-            cap_add = container.get('cap_add', [])
-            cap_drop = container.get('cap_drop', [])
-            command = container.get('command', '')
-            environment = container.get('environment')
 
-            docker_host_config = self._docker.create_host_config(
-                privileged=privileged,
-                port_bindings=port_bindings,
-                binds=volume_mounts,
-                cap_add=cap_add,
-                cap_drop=cap_drop)
+            container['image'] = self.image_tag.format(container['image'],
+                                                container['image_version'])
+            del container['image_version']
+            del container['created']
+            del container['registry']
+            del container['ansible_groups']
 
-            if (container['created'] is not True):
-                msg = ('Creating container {} '
-                       'with base image {}:{}...').format(
-                           container['name'], container['image'],
-                           container['image_version'])
-                util.print_warn(msg)
-                container = self._docker.create_container(
-                    image=self.image_tag.format(container['image'],
-                                                container['image_version']),
-                    tty=True,
-                    detach=False,
-                    name=container['name'],
-                    ports=port_bindings.keys(),
-                    host_config=docker_host_config,
-                    environment=environment,
-                    command=command)
-                self._docker.start(container=container.get('Id'))
-                container['created'] = True
 
-                util.print_success('Container created.')
-            else:
-                self._docker.start(container['name'])
-                msg = 'Starting container {}...'.format(container['name'])
-                util.print_info(msg)
+            msg = 'Starting container {}...'.format(container['name'])
+            util.print_info(msg)
+
+            self._ansib.execute_module('docker_container',
+                                      state='started',
+                                      recreate=True,
+                                      tty=True,
+                                      detach=True,
+                                      **container)
+            util.print_success("Created.")
 
     def destroy(self):
         for container in self.instances:
-            if (container['created']):
-                msg = 'Stopping container {}...'.format(container['name'])
-                util.print_warn(msg)
-                self._docker.stop(container['name'], timeout=0)
-                self._docker.remove_container(container['name'])
-                msg = 'Removed container {}.'.format(container['name'])
-                util.print_success(msg)
-                container['created'] = False
+
+            util.print_info('Removing container {}'.format(container['name']))
+            self._ansib.execute_module('docker_container',
+                                      state='absent',
+                                      name=container['name'],
+                                      timeout=1)
+
 
     def status(self):
         Status = collections.namedtuple(
