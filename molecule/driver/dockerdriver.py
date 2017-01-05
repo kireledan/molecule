@@ -22,6 +22,7 @@ import collections
 import io
 import json
 import sys
+import os
 
 try:
     import docker
@@ -42,6 +43,7 @@ class DockerDriver(basedriver.BaseDriver):
         self._provider = self._get_provider()
         self._platform = self._get_platform()
         self._ansib = AnsibleLocalExec()
+        self._docker_module = 'docker_container' if self._ansib.is_22() else 'docker'
 
         self.image_tag = 'molecule_local/{}:{}'
 
@@ -120,34 +122,50 @@ class DockerDriver(basedriver.BaseDriver):
             self.image_tag = '{}:{}'
 
         for container in self.instances:
+            container['image'] = self.image_tag.format(
+                container['image'], container['image_version'])
 
-            container['image'] = self.image_tag.format(container['image'],
-                                                container['image_version'])
+            stored_groups = ""
+
             del container['image_version']
-            del container['created']
             del container['registry']
-            del container['ansible_groups']
 
+            if 'created' in container:
+                del container['created']
+
+            if 'ansible_groups' in container:
+                stored_groups = container['ansible_groups']
+                del container['ansible_groups']
+
+            if 'dockerfile' in container:
+                del container['dockerfile']
+
+            if 'options' in container:
+                del container['options']
 
             msg = 'Starting container {}...'.format(container['name'])
             util.print_info(msg)
 
-            self._ansib.execute_module('docker_container',
-                                      state='started',
-                                      recreate=True,
-                                      tty=True,
-                                      detach=True,
-                                      **container)
-            util.print_success("Created.")
+            self._ansib.execute_module(
+                self._docker_module,
+                state='started',
+                tty=True,
+                detach=True,
+                **container)
+
+
+            container['ansible_groups'] = stored_groups
 
     def destroy(self):
         for container in self.instances:
 
             util.print_info('Removing container {}'.format(container['name']))
-            self._ansib.execute_module('docker_container',
-                                      state='absent',
-                                      name=container['name'],
-                                      timeout=1)
+
+            tag_string = self.image_tag.format(
+                container['image'], container['image_version'])
+
+            self._ansib.execute_module(
+                self._docker_module, state='absent', name=container['name'], image=tag_string)
 
 
     def status(self):
@@ -222,7 +240,7 @@ class DockerDriver(basedriver.BaseDriver):
 
             if 'dockerfile' in container:
                 dockerfile = container['dockerfile']
-                f = io.open(dockerfile)
+
 
             else:
                 environment = container.get('environment')
@@ -238,7 +256,13 @@ class DockerDriver(basedriver.BaseDriver):
                     container_version=container['image_version'],
                     container_environment=environment)
 
-                f = io.BytesIO(dockerfile.encode('utf-8'))
+
+                try:
+                    with open(os.path.join(os.getcwd(),'dockerfile'),'w') as dockerf:
+                        dockerf.write(dockerfile.encode('utf-8'))
+                except IOError as e:
+                    util.print_error(e.message)
+
 
                 container['image'] = container['registry'].replace(
                     '/', '_').replace(':', '_') + container['image']
@@ -246,33 +270,11 @@ class DockerDriver(basedriver.BaseDriver):
             tag_string = self.image_tag.format(container['image'],
                                                container['image_version'])
 
-            errors = False
-
             if tag_string not in available_images or 'dockerfile' in container:
                 util.print_info('Building ansible compatible image...')
-                previous_line = ''
-                for line in self._docker.build(fileobj=f, tag=tag_string):
-                    for line_split in line.split('\n'):
-                        if len(line_split) > 0:
-                            line = json.loads(line_split)
-                            if 'stream' in line:
-                                msg = '\t{}'.format(line['stream'])
-                                util.print_warn(msg)
-                            if 'errorDetail' in line:
-                                ed = line['errorDetail']['message']
-                                msg = '\t{}'.format(ed)
-                                util.print_warn(msg)
-                                errors = True
-                            if 'status' in line:
-                                if previous_line not in line['status']:
-                                    msg = '\t{} ...'.format(line['status'])
-                                    util.print_warn(msg)
-                                previous_line = line['status']
 
-                if errors:
-                    msg = 'Build failed for {}.'.format(tag_string)
-                    util.print_error(msg)
-                    return
-                else:
-                    util.print_success('Finished building {}.'.format(
-                        tag_string))
+                self._ansib.execute_module(
+                    "docker_image",
+                    path=str(os.getcwd()),
+                    dockerfile=os.path.join(os.getcwd(),'dockerfile'),
+                    name=tag_string)

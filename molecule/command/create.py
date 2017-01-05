@@ -48,6 +48,8 @@ class Create(base.Base):
             if exit:
                 util.sysexit(e.returncode)
             return e.returncode, e.message
+        except Exception as e:
+            print e.message
         self.molecule.create_inventory_file()
         self.molecule.write_instances_state()
         return None, None

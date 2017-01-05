@@ -1,0 +1,9 @@
+[run]
+omit =
+  */molecule/cookiecutter/*
+  */molecule/driver/dockerdriver.py
+  */molecule/ansible_exec.py
+
+[report]
+fail_under =
+  81

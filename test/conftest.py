@@ -79,6 +79,7 @@ def supports_docker():
         ansible_v1() or get_docker_executable(), reason='Docker not supported')
 
 
+
 @pytest.helpers.register
 def supports_vagrant_virtualbox():
     return pytest.mark.skipif(
