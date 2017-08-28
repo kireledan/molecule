@@ -36,6 +36,7 @@ from molecule.driver import ec2
 from molecule.driver import gce
 from molecule.driver import lxc
 from molecule.driver import lxd
+from molecule.driver import kvm
 from molecule.driver import openstack
 from molecule.driver import vagrant
 from molecule.lint import yamllint
@@ -136,6 +137,8 @@ class Config(object):
             driver = lxc.Lxc(self)
         elif driver_name == 'lxd':
             driver = lxd.Lxd(self)
+        elif driver_name == 'kvm':
+            driver = kvm.kvm(self)
         elif driver_name == 'openstack':
             driver = openstack.Openstack(self)
         elif driver_name == 'vagrant':
