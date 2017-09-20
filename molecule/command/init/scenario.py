@@ -35,6 +35,10 @@ class Scenario(base.Base):
     Initialize a new scenario:
 
     >>> molecule init scenario --scenario-name default --role-name foo
+
+    Initialize an existing role with Molecule:
+
+    >>> molecule init scenario --scenario-name default --role-name foo
     """
 
     def __init__(self, command_args):
@@ -84,7 +88,7 @@ def _role_exists(ctx, param, value):  # pragma: no cover
     role_directory = os.path.join(os.pardir, value)
     if not os.path.exists(role_directory):
         msg = ("The role '{}' not found. "
-               'Please choose the proper role name.'.format(value))
+               'Please choose the proper role name.').format(value)
         util.sysexit_with_message(msg)
     return value
 

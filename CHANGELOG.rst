@@ -10,6 +10,27 @@ functionality in a backwards-compatible manner.
 
 .. _`Semantic Versioning`: http://semver.org
 
+2.1
+===
+
+* Add a destroy strategy to the `test` action.
+* Delegated driver may or may not manage instances.
+
+2.0.4
+=====
+
+* Fix Dockerfile for Fedora.
+
+2.0.3
+=====
+
+* Generate host/group vars when host vars missing.
+
+2.0.2
+=====
+
+* Pass the provisioner's env to the verifier.
+
 2.0.1
 =====
 
@@ -55,6 +76,11 @@ Breaking Changes
 .. _`Scenarios`: http://molecule.readthedocs.io/en/latest/configuration.html#scenario
 .. _`Delegated Driver`: http://molecule.readthedocs.io/en/latest/configuration.html#delegated
 .. _`Yamllint`: https://github.com/adrienverge/yamllint
+
+1.25.1
+======
+
+* Update ansible-lint for Ansible 2.4 compatibility.
 
 1.25
 ====
