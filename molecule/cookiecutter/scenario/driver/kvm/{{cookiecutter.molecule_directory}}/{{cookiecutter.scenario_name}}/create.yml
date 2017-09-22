@@ -8,6 +8,7 @@
   vars:
     molecule_file: "{{ lookup('env', 'MOLECULE_FILE') }}"
     molecule_instance_config: "{{ lookup('env', 'MOLECULE_INSTANCE_CONFIG') }}"
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
     molecule_yml: "{{ lookup('file', molecule_file) | from_yaml }}"
   tasks:
     - name: Get public key
@@ -18,20 +19,22 @@
         name: kireledan.libvirt
       vars:
         state: create
-        libvirt_images_path: '/tmp/images'
+        libvirt_images_path: "{{molecule_ephemeral_directory}}"
+        pubkey: "{{key.stdout}}"
         libvirt_domain:
           # basic arguments
           groups: ['molecule'] # names of Ansible nodes/groups used to provision the domain
-          name: "{{item.name}}" # name/uuid of the domain (empty means new uuid)
+          name: "{{plat.name}}" # name/uuid of the domain (empty means new uuid)
           title: 'Molecule' # title of the vm
-          image_url: "{{item.img}}"
+          image_url: "{{plat.img}}"
           vm:
-            memory: "{{item.memory}}" # RAM memory available to the VM
-            vcpu: "{{item.vcpu}}" # number of cores designated to the VM
-            disk_size: "{{item.disk_size}}" # use this to change first disk size
-          pubkey: "{{key.stdout}}"
+            memory: "{{plat.memory}}" # RAM memory available to the VM
+            vcpu: "{{plat.vcpu}}" # number of cores designated to the VM
+            disk_size: "{{plat.disk_size}}" # use this to change first disk size
       register: kvms
       with_items: "{{ molecule_yml.platforms }}"
+      loop_control:
+        loop_var: plat
 
     - debug: var=kvms
 
