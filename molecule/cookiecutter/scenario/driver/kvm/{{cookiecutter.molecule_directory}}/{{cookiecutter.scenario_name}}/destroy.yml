@@ -1,5 +1,4 @@
----
-{% raw %}
+{% raw -%}
 ---
 - name: Destroy
   hosts: localhost
