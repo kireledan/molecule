@@ -407,6 +407,7 @@ def molecule_drivers():
         ec2.Ec2(None).name,
         gce.Gce(None).name,
         lxc.Lxc(None).name,
+        kvm.kvm(None).name,
         lxd.Lxd(None).name,
         openstack.Openstack(None).name,
         vagrant.Vagrant(None).name,
