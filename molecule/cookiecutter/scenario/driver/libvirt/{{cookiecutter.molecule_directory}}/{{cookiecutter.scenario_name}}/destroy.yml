@@ -1,0 +1,24 @@
+---
+{% raw %}
+---
+- name: Destroy
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  no_log: no
+  vars:
+    molecule_file: "{{ lookup('env', 'MOLECULE_FILE') }}"
+    molecule_ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    molecule_yml: "{{ lookup('file', molecule_file) | from_yaml }}"
+  tasks:
+    - name: Launch KVM
+      include_role:
+        name: kireledan.libvirt
+      vars:
+        state: destroy
+        to_destroy:
+          - "{{plat.name}}"
+      with_items: "{{ molecule_yml.platforms }}"
+      loop_control:
+        loop_var: plat
+{%- endraw %}

@@ -28,13 +28,13 @@ LOG = logger.get_logger(__name__)
 
 class kvm(base.Base):
     """
-    The class responsible for managing `OpenStack`_ instances.  `OpenStack`_
+    The class responsible for managing `KVM`_ instances.  `KVM`_
     is `not` the default driver used in Molecule.
 
     .. code-block:: yaml
 
         driver:
-          name: openstack
+          name: kvm
 
     .. code-block:: bash
 

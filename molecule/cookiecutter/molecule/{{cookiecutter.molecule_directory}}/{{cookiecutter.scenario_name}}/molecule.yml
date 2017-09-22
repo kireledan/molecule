@@ -34,6 +34,13 @@ platforms:
 {%- elif cookiecutter.driver_name == 'vagrant' %}
   - name: instance
     box: ubuntu/xenial64
+{%- elift cookiecutter.driver_name =='kvm' %}
+  - name: moleculefour
+    memory: "512MiB"
+    vcpu: 1
+    disk_size: "12G"
+    network: 'default'
+    img: "https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img"
 {%- endif %}
 provisioner:
   name: {{ cookiecutter.provisioner_name }}
